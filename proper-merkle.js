@@ -126,9 +126,7 @@ function fromByteArray (uint8) {
 
   // go through the array every three bytes, we'll deal with trailing stuff later
   for (var i = 0, len2 = len - extraBytes; i < len2; i += maxChunkLength) {
-    parts.push(encodeChunk(
-      uint8, i, (i + maxChunkLength) > len2 ? len2 : (i + maxChunkLength)
-    ))
+    parts.push(encodeChunk(uint8, i, (i + maxChunkLength) > len2 ? len2 : (i + maxChunkLength)))
   }
 
   // pad the end with zeros, but make sure to not forget the extra bytes
@@ -153,7 +151,7 @@ function fromByteArray (uint8) {
 }
 
 },{}],2:[function(require,module,exports){
-(function (Buffer){
+(function (Buffer){(function (){
 /*!
  * The buffer module from node.js, for the browser.
  *
@@ -1932,7 +1930,7 @@ function numberIsNaN (obj) {
   return obj !== obj // eslint-disable-line no-self-compare
 }
 
-}).call(this,require("buffer").Buffer)
+}).call(this)}).call(this,require("buffer").Buffer)
 },{"base64-js":1,"buffer":2,"ieee754":15}],3:[function(require,module,exports){
 var hash = exports;
 
@@ -3166,6 +3164,7 @@ function shr64_lo(ah, al, num) {
 exports.shr64_lo = shr64_lo;
 
 },{"inherits":16,"minimalistic-assert":17}],15:[function(require,module,exports){
+/*! ieee754. BSD-3-Clause License. Feross Aboukhadijeh <https://feross.org/opensource> */
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
   var eLen = (nBytes * 8) - mLen - 1
@@ -3480,7 +3479,7 @@ process.chdir = function (dir) {
 process.umask = function() { return 0; };
 
 },{}],19:[function(require,module,exports){
-(function (process,global){
+(function (process,global){(function (){
 'use strict'
 
 // limit of Crypto.getRandomValues()
@@ -3532,7 +3531,7 @@ function randomBytes (size, cb) {
   return bytes
 }
 
-}).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+}).call(this)}).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"_process":18,"safe-buffer":20}],20:[function(require,module,exports){
 /*! safe-buffer. MIT License. Feross Aboukhadijeh <https://feross.org/opensource> */
 /* eslint-disable node/no-deprecated-api */
@@ -3601,7 +3600,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
 }
 
 },{"buffer":2}],21:[function(require,module,exports){
-(function (Buffer){
+(function (Buffer){(function (){
 const hash = require('hash.js');
 
 module.exports = function (secret, secretEncoding, message, outputEncoding) {
@@ -3614,9 +3613,9 @@ module.exports = function (secret, secretEncoding, message, outputEncoding) {
   return Buffer.from(shasum, 'hex').toString(outputEncoding || 'base64');
 };
 
-}).call(this,require("buffer").Buffer)
+}).call(this)}).call(this,require("buffer").Buffer)
 },{"buffer":2,"hash.js":3}],22:[function(require,module,exports){
-(function (Buffer){
+(function (Buffer){(function (){
 const randomBytes = require('randombytes');
 const sha256 = require('./sha256');
 const hmacSha256 = require('./hmac-sha256');
@@ -3856,9 +3855,9 @@ class SimpleLamport {
 
 module.exports = SimpleLamport;
 
-}).call(this,require("buffer").Buffer)
+}).call(this)}).call(this,require("buffer").Buffer)
 },{"./hmac-sha256":21,"./sha256":23,"buffer":2,"randombytes":19}],23:[function(require,module,exports){
-(function (Buffer){
+(function (Buffer){(function (){
 const hash = require('hash.js');
 
 module.exports = function (message, encoding) {
@@ -3869,9 +3868,9 @@ module.exports = function (message, encoding) {
   return Buffer.from(shasum, 'hex').toString(encoding || 'base64');
 };
 
-}).call(this,require("buffer").Buffer)
+}).call(this)}).call(this,require("buffer").Buffer)
 },{"buffer":2,"hash.js":3}],"proper-merkle":[function(require,module,exports){
-(function (Buffer){
+(function (Buffer){(function (){
 const SimpleLamport = require('simple-lamport');
 const DEFAULT_LEAF_COUNT = 32;
 const HASH_ELEMENT_BYTE_SIZE = 32;
@@ -3879,6 +3878,7 @@ const SEED_BYTE_SIZE = 32;
 const SIG_ENTRY_COUNT = 256;
 const KEY_ENTRY_COUNT = 512;
 const DEFAULT_SEED_ENCODING = 'base64';
+const DEFAULT_NODE_ENCODING = 'base64';
 const KEY_SIG_ENCODING = 'base64';
 
 class ProperMerkle {
@@ -3894,6 +3894,7 @@ class ProperMerkle {
     this.leafCount = leafCount;
     this.asyncPauseAfterCount = options.asyncPauseAfterCount || 5;
     this.seedEncoding = options.seedEncoding || DEFAULT_SEED_ENCODING;
+    this.nodeEncoding = options.nodeEncoding || DEFAULT_NODE_ENCODING;
 
     this.lamport = new SimpleLamport({
       keyFormat: KEY_SIG_ENCODING,
@@ -3917,7 +3918,7 @@ class ProperMerkle {
       let keyPair = this.lamport.generateKeysFromSeed(treeSeed, i);
       privateKeys.push(keyPair.privateKey);
       publicKeys.push(keyPair.publicKey);
-      merkleLeaves.push(this.lamport.hash(keyPair.publicKey));
+      merkleLeaves.push(this.lamport.sha256(keyPair.publicKey, this.nodeEncoding));
       if (i % this.asyncPauseAfterCount === 0) {
         await this._wait(0);
       }
@@ -3942,14 +3943,13 @@ class ProperMerkle {
       tree.push(currentLayer);
       lastLayer = currentLayer;
     }
-    let publicRootHash = lastLayer[0];
 
     return {
       treeName,
       privateKeys,
       publicKeys,
       tree,
-      publicRootHash
+      publicRootHash: lastLayer[0]
     };
   }
 
@@ -3964,7 +3964,7 @@ class ProperMerkle {
       let keyPair = this.lamport.generateKeysFromSeed(treeSeed, i);
       privateKeys.push(keyPair.privateKey);
       publicKeys.push(keyPair.publicKey);
-      merkleLeaves.push(this.lamport.hash(keyPair.publicKey));
+      merkleLeaves.push(this.lamport.sha256(keyPair.publicKey, this.nodeEncoding));
     }
 
     let tree = [merkleLeaves];
@@ -3983,14 +3983,13 @@ class ProperMerkle {
       tree.push(currentLayer);
       lastLayer = currentLayer;
     }
-    let publicRootHash = lastLayer[0];
 
     return {
       treeName,
       privateKeys,
       publicKeys,
       tree,
-      publicRootHash
+      publicRootHash: lastLayer[0]
     };
   }
 
@@ -4000,13 +3999,11 @@ class ProperMerkle {
     let signature = this.lamport.sign(message, privateKey);
     let authPath = this.computeAuthPath(mssTree, leafIndex);
 
-    let signatureBuffer = Buffer.concat([
-      Buffer.from(publicKey, KEY_SIG_ENCODING),
-      Buffer.from(signature, KEY_SIG_ENCODING),
-      Buffer.concat(authPath.map(item => Buffer.from(item, KEY_SIG_ENCODING)))
-    ]);
-
-    return this.encodeSignature(signatureBuffer);
+    return this.encodeSignature({
+      publicKey,
+      authPath,
+      signature
+    });
   }
 
   verify(message, signature, publicRootHash) {
@@ -4020,7 +4017,7 @@ class ProperMerkle {
     if (!signatureIsValid) {
       return false;
     }
-    let publicKeyHash = this.lamport.hash(signaturePacket.publicKey);
+    let publicKeyHash = this.lamport.sha256(signaturePacket.publicKey, this.nodeEncoding);
     let { authPath } = signaturePacket;
 
     let compoundHash = publicKeyHash;
@@ -4057,14 +4054,20 @@ class ProperMerkle {
       greaterItem = stringB;
       lesserItem = stringA;
     }
-    return this.lamport.hash(`${lesserItem}${greaterItem}`);
+    return this.lamport.sha256(`${lesserItem}${greaterItem}`, this.nodeEncoding);
   }
 
-  encodeSignature(rawSignaturePacket) {
+  encodeSignature({publicKey, authPath, signature}) {
+    let signaturePacket = Buffer.concat([
+      Buffer.from(publicKey, KEY_SIG_ENCODING),
+      Buffer.concat(authPath.map(item => Buffer.from(item, this.nodeEncoding))),
+      Buffer.from(signature, KEY_SIG_ENCODING)
+    ]);
+
     if (this.signatureFormat === 'buffer') {
-      return rawSignaturePacket;
+      return signaturePacket;
     }
-    return rawSignaturePacket.toString(this.signatureFormat);
+    return signaturePacket.toString(this.signatureFormat);
   }
 
   decodeSignature(encodedSignaturePacket) {
@@ -4075,29 +4078,28 @@ class ProperMerkle {
       signatureBuffer = Buffer.from(encodedSignaturePacket, this.signatureFormat);
     }
     let publicKeyByteLength = HASH_ELEMENT_BYTE_SIZE * KEY_ENTRY_COUNT;
-    let signatureByteLength = HASH_ELEMENT_BYTE_SIZE * SIG_ENTRY_COUNT;
-    let authPathByteLength = HASH_ELEMENT_BYTE_SIZE * SIG_ENTRY_COUNT;
-    let authBufferOffset = publicKeyByteLength + signatureByteLength;
+    let authPathEntryCount = Math.log2(this.leafCount);
+    let authPathByteLength = HASH_ELEMENT_BYTE_SIZE * authPathEntryCount;
+    let signatureBufferOffset = publicKeyByteLength + authPathByteLength;
 
     let publicKey = signatureBuffer.slice(0, publicKeyByteLength).toString(KEY_SIG_ENCODING);
-    let signature = signatureBuffer.slice(publicKeyByteLength, authBufferOffset).toString(KEY_SIG_ENCODING);
 
-    let authPathBuffer = signatureBuffer.slice(authBufferOffset);
-    let bufferLength = authPathBuffer.length;
-    let authPathEntryCount = bufferLength / HASH_ELEMENT_BYTE_SIZE;
+    let authPathBuffer = signatureBuffer.slice(publicKeyByteLength, signatureBufferOffset);
     let authPath = [];
 
     for (let i = 0; i < authPathEntryCount; i++) {
       let startOffset = i * HASH_ELEMENT_BYTE_SIZE;
       authPath.push(
-        authPathBuffer.slice(startOffset, startOffset + HASH_ELEMENT_BYTE_SIZE).toString(KEY_SIG_ENCODING)
+        authPathBuffer.slice(startOffset, startOffset + HASH_ELEMENT_BYTE_SIZE).toString(this.nodeEncoding)
       );
     }
 
+    let signature = signatureBuffer.slice(signatureBufferOffset).toString(KEY_SIG_ENCODING);
+
     return {
       publicKey,
-      signature,
-      authPath
+      authPath,
+      signature
     };
   }
 
@@ -4126,6 +4128,6 @@ class ProperMerkle {
 
 module.exports = ProperMerkle;
 
-}).call(this,require("buffer").Buffer)
+}).call(this)}).call(this,require("buffer").Buffer)
 },{"buffer":2,"simple-lamport":22}]},{},["proper-merkle"])("proper-merkle")
 });
