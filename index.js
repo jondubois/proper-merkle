@@ -126,13 +126,11 @@ class ProperMerkle {
     let signature = this.lamport.sign(message, privateKey);
     let authPath = this.computeAuthPath(mssTree, leafIndex);
 
-    let signatureBuffer = Buffer.concat([
-      Buffer.from(publicKey, KEY_SIG_ENCODING),
-      Buffer.from(signature, KEY_SIG_ENCODING),
-      Buffer.concat(authPath.map(item => Buffer.from(item, this.nodeEncoding)))
-    ]);
-
-    return this.encodeSignature(signatureBuffer);
+    return this.encodeSignature({
+      publicKey,
+      authPath,
+      signature
+    });
   }
 
   verify(message, signature, publicRootHash) {
@@ -186,11 +184,17 @@ class ProperMerkle {
     return this.lamport.sha256(`${lesserItem}${greaterItem}`, this.nodeEncoding);
   }
 
-  encodeSignature(rawSignaturePacket) {
+  encodeSignature({publicKey, authPath, signature}) {
+    let signaturePacket = Buffer.concat([
+      Buffer.from(publicKey, KEY_SIG_ENCODING),
+      Buffer.concat(authPath.map(item => Buffer.from(item, this.nodeEncoding))),
+      Buffer.from(signature, KEY_SIG_ENCODING)
+    ]);
+
     if (this.signatureFormat === 'buffer') {
-      return rawSignaturePacket;
+      return signaturePacket;
     }
-    return rawSignaturePacket.toString(this.signatureFormat);
+    return signaturePacket.toString(this.signatureFormat);
   }
 
   decodeSignature(encodedSignaturePacket) {
@@ -201,16 +205,13 @@ class ProperMerkle {
       signatureBuffer = Buffer.from(encodedSignaturePacket, this.signatureFormat);
     }
     let publicKeyByteLength = HASH_ELEMENT_BYTE_SIZE * KEY_ENTRY_COUNT;
-    let signatureByteLength = HASH_ELEMENT_BYTE_SIZE * SIG_ENTRY_COUNT;
-    let authPathByteLength = HASH_ELEMENT_BYTE_SIZE * SIG_ENTRY_COUNT;
-    let authBufferOffset = publicKeyByteLength + signatureByteLength;
+    let authPathEntryCount = Math.log2(this.leafCount);
+    let authPathByteLength = HASH_ELEMENT_BYTE_SIZE * authPathEntryCount;
+    let signatureBufferOffset = publicKeyByteLength + authPathByteLength;
 
     let publicKey = signatureBuffer.slice(0, publicKeyByteLength).toString(KEY_SIG_ENCODING);
-    let signature = signatureBuffer.slice(publicKeyByteLength, authBufferOffset).toString(KEY_SIG_ENCODING);
 
-    let authPathBuffer = signatureBuffer.slice(authBufferOffset);
-    let bufferLength = authPathBuffer.length;
-    let authPathEntryCount = bufferLength / HASH_ELEMENT_BYTE_SIZE;
+    let authPathBuffer = signatureBuffer.slice(publicKeyByteLength, signatureBufferOffset);
     let authPath = [];
 
     for (let i = 0; i < authPathEntryCount; i++) {
@@ -220,10 +221,12 @@ class ProperMerkle {
       );
     }
 
+    let signature = signatureBuffer.slice(signatureBufferOffset).toString(KEY_SIG_ENCODING);
+
     return {
       publicKey,
-      signature,
-      authPath
+      authPath,
+      signature
     };
   }
 
